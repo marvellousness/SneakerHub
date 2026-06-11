@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Calendar, Package, ShoppingBag, ChevronDown, ChevronUp, MapPin, 
-  CreditCard, ExternalLink, ChevronRight, HelpCircle, Truck, ClipboardList
+  CreditCard, ExternalLink, ChevronRight, HelpCircle, Truck, ClipboardList,
+  ArrowUpDown
 } from 'lucide-react';
 import { Order } from '../types';
 
@@ -21,12 +22,32 @@ export default function OrderHistoryView({
   onNavigateToShop,
   onSelectOrder
 }: OrderHistoryViewProps) {
+  // Sorting options: 'date-desc' | 'date-asc' | 'price-desc' | 'price-asc'
+  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'price-desc' | 'price-asc'>('date-desc');
+
   // Keep track of which order card is expanded
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(orders.length > 0 ? orders[0].id : null);
 
   const toggleExpand = (id: string) => {
     setExpandedOrderId(prev => (prev === id ? null : id));
   };
+
+  // Derived sorted orders array
+  const sortedOrders = [...orders].sort((a, b) => {
+    if (sortBy === 'date-desc') {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    if (sortBy === 'date-asc') {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    if (sortBy === 'price-desc') {
+      return b.priceBreakdown.total - a.priceBreakdown.total;
+    }
+    if (sortBy === 'price-asc') {
+      return a.priceBreakdown.total - b.priceBreakdown.total;
+    }
+    return 0;
+  });
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -92,7 +113,30 @@ export default function OrderHistoryView({
         ) : (
           /* Orders index list layout */
           <div className="space-y-3">
-            {orders.map((order) => {
+            {/* Sorting controls bar */}
+            <div id="order-history-filter-bar" className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                Sort Transactions
+              </span>
+              <div className="relative inline-flex items-center">
+                <select
+                  id="order-sort-selector"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-white border border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-800 rounded-lg pl-3 pr-7 py-2 focus:outline-none focus:border-black appearance-none cursor-pointer font-sans leading-none hover:bg-slate-50 transition-all select-none"
+                >
+                  <option value="date-desc">Newest First</option>
+                  <option value="date-asc">Oldest First</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="price-asc">Price: Low to High</option>
+                </select>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-450">
+                  <ArrowUpDown size={11} />
+                </div>
+              </div>
+            </div>
+
+            {sortedOrders.map((order) => {
               const isExpanded = expandedOrderId === order.id;
               const formattedDate = new Date(order.createdAt).toLocaleDateString(undefined, {
                 year: 'numeric',
