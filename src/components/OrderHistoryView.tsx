@@ -52,20 +52,41 @@ export default function OrderHistoryView({
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'Pending':
-        return 'bg-amber-50 text-amber-800 border-amber-200';
+        return {
+          bg: 'bg-amber-50/80 text-amber-800 border-amber-250',
+          dot: 'bg-amber-500'
+        };
       case 'Confirmed':
-        return 'bg-blue-50 text-blue-800 border-blue-200';
+        return {
+          bg: 'bg-orange-50/80 text-orange-800 border-orange-250',
+          dot: 'bg-orange-500'
+        };
       case 'Shipped':
-        return 'bg-indigo-50 text-indigo-800 border-indigo-200';
+        return {
+          bg: 'bg-blue-50/80 text-blue-800 border-blue-250',
+          dot: 'bg-blue-500'
+        };
       case 'Out for Delivery':
-        return 'bg-orange-50 text-orange-800 border-orange-200';
+        return {
+          bg: 'bg-indigo-50/80 text-indigo-800 border-indigo-250',
+          dot: 'bg-indigo-500'
+        };
       case 'Delivered':
       case 'Completed':
-        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+        return {
+          bg: 'bg-emerald-50/80 text-emerald-800 border-emerald-250',
+          dot: 'bg-emerald-500'
+        };
       case 'Cancelled':
-        return 'bg-rose-50 text-rose-800 border-rose-200';
+        return {
+          bg: 'bg-rose-50/80 text-rose-800 border-rose-250',
+          dot: 'bg-rose-500'
+        };
       default:
-        return 'bg-slate-50 text-slate-800 border-slate-200';
+        return {
+          bg: 'bg-slate-50 text-slate-800 border-slate-200',
+          dot: 'bg-slate-500'
+        };
     }
   };
 
@@ -166,7 +187,8 @@ export default function OrderHistoryView({
                       </div>
 
                       <div className="flex gap-2 items-center">
-                        <span className={`text-[9px] font-mono border rounded px-1.5 py-0.5 font-bold uppercase tracking-wide leading-none ${getStatusStyle(order.status)}`}>
+                        <span className={`inline-flex items-center gap-1.5 text-[9px] font-mono border rounded-full px-2 py-0.5 font-bold uppercase tracking-wide leading-none ${getStatusStyle(order.status).bg}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${getStatusStyle(order.status).dot} ${order.status !== 'Delivered' && order.status !== 'Cancelled' ? 'animate-pulse' : ''}`} />
                           {order.status}
                         </span>
                         {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
