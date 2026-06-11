@@ -1,0 +1,6 @@
+{
+  "name": "SneakerHub",
+  "description": "A premium Android-style eCommerce application for sports shoes and sneakers with a smart Gemini AI Shopping Assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
