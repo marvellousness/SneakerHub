@@ -108,6 +108,9 @@ export interface UserProfile {
     zipCode: string;
     phone: string;
   }[];
+  shoeSize?: number;
+  favoriteBrand?: string;
+  bio?: string;
 }
 
 export interface ChatMessage {

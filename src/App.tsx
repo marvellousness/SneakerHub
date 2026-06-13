@@ -571,6 +571,18 @@ export default function App() {
                       profile={profile}
                       ordersCount={orders.length}
                       onNavigateToOrderHistory={() => navigateTo('order_history')}
+                      onUpdateProfile={async (updatedProfile) => {
+                        setProfile(updatedProfile);
+                        try {
+                          await fetch("/api/profile", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(updatedProfile)
+                          });
+                        } catch (err) {
+                          console.warn("Backend API status: Profile persisted in memory, sync failed: ", err);
+                        }
+                      }}
                       logout={() => {
                         alert("Simulating sign out credentials reset!");
                         setCartItems([]);

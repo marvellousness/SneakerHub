@@ -25,7 +25,10 @@ let userProfile = {
       zipCode: "94107",
       phone: "+1 (555) 902-1234"
     }
-  ]
+  ],
+  shoeSize: 10.5,
+  favoriteBrand: "Jordan",
+  bio: "Sneakerhead since '08. Live for retro Jordan restocks and premium materials."
 };
 
 let notifications: any[] = [
