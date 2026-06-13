@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Calendar, Package, ShoppingBag, ChevronDown, ChevronUp, MapPin, 
   CreditCard, ExternalLink, ChevronRight, HelpCircle, Truck, ClipboardList,
-  ArrowUpDown
+  ArrowUpDown, Star, Smile
 } from 'lucide-react';
 import { Order } from '../types';
 
@@ -28,8 +28,60 @@ export default function OrderHistoryView({
   // Keep track of which order card is expanded
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(orders.length > 0 ? orders[0].id : null);
 
+  // Ratings persistence
+  const [ratings, setRatings] = useState<Record<string, { rating: number; feedback: string; submitted: boolean; date: string }>>(() => {
+    try {
+      const saved = localStorage.getItem('sneakerhub_order_ratings');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  // Draft ratings & feedback before submission
+  const [draftRating, setDraftRating] = useState<Record<string, number>>({});
+  const [draftFeedback, setDraftFeedback] = useState<Record<string, string>>({});
+  // Hover effect over star index per order
+  const [hoverRating, setHoverRating] = useState<Record<string, number>>({});
+
   const toggleExpand = (id: string) => {
     setExpandedOrderId(prev => (prev === id ? null : id));
+  };
+
+  const handleSaveRating = (orderId: string) => {
+    const rLabel = draftRating[orderId] || 0;
+    if (rLabel === 0) return;
+
+    const updated = {
+      ...ratings,
+      [orderId]: {
+        rating: rLabel,
+        feedback: draftFeedback[orderId] || '',
+        submitted: true,
+        date: new Date().toISOString()
+      }
+    };
+    setRatings(updated);
+    try {
+      localStorage.setItem('sneakerhub_order_ratings', JSON.stringify(updated));
+    } catch (e) {
+      console.warn("Storage exception:", e);
+    }
+  };
+
+  const handleResetRating = (orderId: string) => {
+    const updated = { ...ratings };
+    delete updated[orderId];
+    setRatings(updated);
+    try {
+      localStorage.setItem('sneakerhub_order_ratings', JSON.stringify(updated));
+    } catch (e) {
+      console.warn("Storage exception:", e);
+    }
+
+    // Reset draft fields as well
+    setDraftRating(prev => ({ ...prev, [orderId]: 0 }));
+    setDraftFeedback(prev => ({ ...prev, [orderId]: '' }));
   };
 
   // Derived sorted orders array
@@ -317,6 +369,151 @@ export default function OrderHistoryView({
                               <span className="font-mono">${order.priceBreakdown.total.toFixed(2)}</span>
                             </div>
                           </div>
+
+                          {/* Rate Your Delivery Experience Feature */}
+                          {order.status === 'Delivered' && (
+                            <div className="pt-3.5 border-t border-dashed border-slate-200 space-y-2.5 text-left">
+                              <span className="text-[10px] font-mono font-bold uppercase text-slate-400 block tracking-wider leading-none">
+                                Courier & Delivery Audit
+                              </span>
+
+                              {ratings[order.id]?.submitted ? (
+                                /* Submitted State */
+                                <div className="bg-emerald-50/20 border border-emerald-100 p-3 rounded-lg flex flex-col gap-2 relative">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-tight italic flex items-center gap-1">
+                                      <span className="text-emerald-500">✓</span> Feedback Logged
+                                    </span>
+                                    <span className="text-[8.5px] font-mono text-slate-400">
+                                      {new Date(ratings[order.id].date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex gap-1">
+                                    {[1, 2, 3, 4, 5].map((starVal) => (
+                                      <Star 
+                                        key={starVal} 
+                                        size={12} 
+                                        className={starVal <= ratings[order.id].rating ? 'fill-amber-400 text-amber-500' : 'text-slate-250'} 
+                                      />
+                                    ))}
+                                  </div>
+
+                                  {ratings[order.id].feedback ? (
+                                    <p className="text-[10px] text-slate-600 bg-white/70 px-2.5 py-1.5 rounded-md border border-slate-100 italic leading-snug">
+                                      "{ratings[order.id].feedback}"
+                                    </p>
+                                  ) : (
+                                    <p className="text-[9.5px] text-slate-400 italic">No text comments provided.</p>
+                                  )}
+
+                                  <button
+                                    onClick={() => handleResetRating(order.id)}
+                                    className="absolute right-3 bottom-3 text-[9px] font-mono font-black text-amber-600 hover:text-amber-800 uppercase tracking-wider underline cursor-pointer bg-transparent border-none"
+                                  >
+                                    Reset Review
+                                  </button>
+                                </div>
+                              ) : (
+                                /* Rating Form State */
+                                <div className="bg-slate-50 border border-slate-150 p-3 rounded-lg space-y-2.5">
+                                  <div className="leading-none space-y-1">
+                                    <p className="text-[10.5px] font-bold text-slate-800">How was your delivery with courier Marcus?</p>
+                                    <p className="text-[9.5px] text-slate-400 leading-snug">Rate the box preservation, item accuracy, and courier service.</p>
+                                  </div>
+
+                                  {/* Star Selector */}
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex gap-1.5">
+                                      {[1, 2, 3, 4, 5].map((starVal) => {
+                                        const activeValue = hoverRating[order.id] || draftRating[order.id] || 0;
+                                        return (
+                                          <button
+                                            key={starVal}
+                                            type="button"
+                                            onMouseEnter={() => setHoverRating(prev => ({ ...prev, [order.id]: starVal }))}
+                                            onMouseLeave={() => setHoverRating(prev => ({ ...prev, [order.id]: 0 }))}
+                                            onClick={() => setDraftRating(prev => ({ ...prev, [order.id]: starVal }))}
+                                            className="cursor-pointer transition-transform hover:scale-115 focus:outline-none bg-transparent p-0 m-0 border-none"
+                                          >
+                                            <Star
+                                              size={18}
+                                              className={`transition-all duration-100 ${
+                                                starVal <= activeValue 
+                                                  ? 'fill-amber-400 text-amber-500 scale-105' 
+                                                  : 'text-slate-300'
+                                              }`}
+                                            />
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    {draftRating[order.id] > 0 && (
+                                      <span className="text-[9.5px] font-black font-mono uppercase bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded leading-none">
+                                        {draftRating[order.id]}/5 Score
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Quick suggestion tags */}
+                                  <div className="space-y-1">
+                                    <p className="text-[8.5px] font-mono font-bold text-slate-400 uppercase tracking-tight">Tap Quick Tags</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {["⚡ Fast Delivery", "📦 Pristine Box", "👟 Perfect Fit", "🗣️ Great Courier"].map((tag) => {
+                                        const currentText = draftFeedback[order.id] || '';
+                                        const hasTag = currentText.includes(tag);
+                                        return (
+                                          <button
+                                            key={tag}
+                                            type="button"
+                                            onClick={() => {
+                                              if (hasTag) {
+                                                const cleaned = currentText.replace(tag, '').replace(/,\s*,/g, ',').replace(/^,\s*/, '').replace(/,\s*$/, '').trim();
+                                                setDraftFeedback(prev => ({ ...prev, [order.id]: cleaned }));
+                                              } else {
+                                                const separator = currentText ? ', ' : '';
+                                                setDraftFeedback(prev => ({ ...prev, [order.id]: currentText + separator + tag }));
+                                              }
+                                            }}
+                                            className={`text-[8.5px] px-2 py-1 rounded-md border transition-all text-xs cursor-pointer font-sans leading-none ${
+                                              hasTag 
+                                                ? 'bg-black border-black text-white font-semibold' 
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                          >
+                                            {tag}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* Custom comments box */}
+                                  <div className="space-y-1">
+                                    <textarea
+                                      value={draftFeedback[order.id] || ''}
+                                      onChange={(e) => setDraftFeedback(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                      placeholder="Leave a quick note about your unboxing (optional)..."
+                                      className="text-[10.5px] p-2 bg-white border border-slate-150 rounded-lg w-full focus:outline-none focus:border-black font-sans leading-normal h-12 resize-none shadow-inner"
+                                    />
+                                  </div>
+
+                                  {/* Submit button bar */}
+                                  <div className="flex justify-end pt-1">
+                                    <button
+                                      type="button"
+                                      disabled={!draftRating[order.id]}
+                                      onClick={() => handleSaveRating(order.id)}
+                                      className="bg-black text-white hover:bg-slate-900 text-[9px] font-mono tracking-widest font-black uppercase py-2 px-3 rounded-lg transition-all self-end cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed leading-none flex items-center gap-1 shadow-sm border-none"
+                                    >
+                                      <Smile size={11} />
+                                      Submit Assessment
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {/* Action deep linking buttons */}
                           <div className="flex gap-2">
